@@ -36,6 +36,8 @@ CHAN0:      ds CHSIZE
 CHAN1:      ds CHSIZE
 CHAN2:      ds CHSIZE
 PSGREG:     ds 14
+PL_ORDERS:  ds 2            ; -> order list
+PL_INSTR:   ds 2            ; -> instrument 0
 PL_PLAYING: ds 1            ; 0 stop, 1 song, 2 pattern loop
 PL_TICK:    ds 1
 PL_SPEED:   ds 1

@@ -9,11 +9,22 @@ awk '{v=$3; sub(/H$/,"",v); printf "set ::sym(%s) 0x%s\n",$1,v}' build/msxtrack.
 status=0
 for machine in C-BIOS_MSX1 C-BIOS_MSX1_JP C-BIOS_MSX2 C-BIOS_MSX2+; do
   echo "== $machine"
-  out=$(MSXT_SYMS="$SYMS" timeout 300 xvfb-run -a openmsx -machine "$machine" \
+  out=$(MSXT_SYMS="$SYMS" MSXT_DEMO=replayer/example/demo.mtk timeout 300 xvfb-run -a openmsx -machine "$machine" \
         -carta build/msxtrack.rom -script test/smoke.tcl 2>&1 | grep -aE "^(PASS|FAIL|RESULT)") || true
   echo "$out"
   echo "$out" | grep -q "RESULT fails=0" || status=1
 done
-rm -f "$SYMS"
+# standalone replayer example
+EXSYMS=$(mktemp)
+(cd replayer/example && pasmo --bin example.asm /dev/null "$EXSYMS.sym")
+awk '{v=$3; sub(/H$/,"",v); printf "set ::sym(%s) 0x%s\n",$1,v}' "$EXSYMS.sym" > "$EXSYMS"
+for machine in C-BIOS_MSX1 C-BIOS_MSX2; do
+  echo "== replayer example on $machine"
+  out=$(MSXT_SYMS="$EXSYMS" timeout 300 xvfb-run -a openmsx -machine "$machine" \
+        -carta build/example.rom -script test/replayer.tcl 2>&1 | grep -aE "^(PASS|FAIL|RESULT)") || true
+  echo "$out"
+  echo "$out" | grep -q "RESULT fails=0" || status=1
+done
+rm -f "$SYMS" "$EXSYMS" "$EXSYMS.sym"
 [ $status -eq 0 ] && echo "ALL TESTS PASSED" || echo "SOME TESTS FAILED"
 exit $status

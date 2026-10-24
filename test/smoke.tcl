@@ -13,8 +13,23 @@ at 0 {
   check "title bar" {[string match "*MSXTRACK*F1 PAT*" [row 0]]}
   check "demo loaded" {[string match "*ORD 00/04*" [row 1]]}
   check "pattern shows notes" {[string match "*A-2 3*C-3 6*" [row 12]]}
-  type "\r"
+  install_fakedos
+  key 7 0
 }
+# the demo saved by the tracker must equal replayer/example/demo.mtk
+at 0.3 { type "s" }
+at 0.3 { key 7 5 }
+at 0.1 { key 7 5 }
+at 0.1 { key 7 5 }
+at 0.1 { key 7 5 }
+at 0.1 { type "demo" }
+at 0.5 { type "\r" }
+at 1.0 {
+  set f [open $::env(MSXT_DEMO) rb]; binary scan [read $f] cu* want; close $f
+  check "tracker file == exported demo.mtk" {$::files(DEMO    MTK) eq $want}
+  key 6 5
+}
+at 0.3 { type "\r" }
 # play song: channel B plays the bass note A-2 (period 1017; the
 # instrument starts one octave up for a click: 508)
 at 0.5 {
@@ -39,7 +54,7 @@ at 0.3 { check "song screen" {[string match "NAME*DEMO TUNE*" [row 1]]}; key 6 7
 at 0.3 { check "instrument screen" {[string match "INSTRUMENT 1*SQUARE*" [row 1]]}; key 7 1 }
 at 0.3 { check "help screen" {[string match "PATTERN EDITOR*" [row 2]]}; key 7 0 }
 # disk round trip with an emulated BDOS
-at 0.3 { install_fakedos; set ::before [snap]; type "s" }
+at 0.3 { set ::before [snap]; type "s" }
 at 0.3 { key 7 5 }
 at 0.1 { key 7 5 }
 at 0.1 { key 7 5 }
@@ -48,7 +63,7 @@ at 0.1 { type "smoke" }
 at 0.5 { type "\r" }
 at 1.0 {
   check "disk save" {[string match "Song saved*" [row 23]]}
-  check "file size" {[llength $::files(SMOKE   MTK)] == 8+1696+3*768}
+  check "file size (got [llength $::files(SMOKE   MTK)])" {[llength $::files(SMOKE   MTK)] == 8+1696+3*768}
   type "n"
 }
 at 0.3 { type "y" }

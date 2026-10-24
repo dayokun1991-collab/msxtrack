@@ -169,8 +169,64 @@ period lo, period hi, reserved, name[8]`, then 16 steps of
 
 Tape files are the same bytes followed by a one-byte checksum.
 
-The replay engine (`src/player.asm`) is self-contained and can be reused in
-your own software.
+## Using songs in games: the MTKPLAY replayer
+
+`replayer/mtkplay.asm` is a standalone replayer you can include in your own
+MSX program to play `.MTK` songs and fire sound effects. It is generated from
+the tracker's own engine, so songs sound exactly as they do in the editor:
+the test suite checks that the replayer and the tracker write identical PSG
+registers frame by frame.
+
+* About 2.3KB of code and tables, plus 175 bytes of RAM wherever you like.
+* Songs can stay in ROM; the replayer only reads them.
+* One sound-effect voice on top of the music. Any instrument can be a sound
+  effect. It takes over one channel and hands it back to the music when it
+  ends.
+* Every label starts with `mtk_`, so it won't clash with your own names.
+
+```z80
+MTK_RAM equ 0E000h              ; 175 bytes of RAM for the replayer
+        include "mtkplay.asm"
+
+        ld hl,song              ; a .MTK file saved by MSXTRACK
+        call mtk_init           ; Z = valid song
+        xor a
+        call mtk_start          ; play from position 0 (loops)
+        ; ...and from your H.TIMI interrupt hook, once per frame:
+        call mtk_frame
+
+        ld a,10                 ; instrument 10 (LASER)
+        ld b,61                 ; note C-6 (1 = C-1, 49 = C-5)
+        ld c,2                  ; on channel C
+        call mtk_sfx
+
+song:   incbin "mysong.mtk"
+```
+
+| Call | Input | Does |
+|------|-------|------|
+| `mtk_init` | HL = .MTK file | Checks and prepares the song (Z = ok). Music stopped. |
+| `mtk_start` | A = position | Plays the song from that position; loops at the end |
+| `mtk_stop` | – | Stops the music (sound effects continue) |
+| `mtk_frame` | – | Call once per frame from the interrupt: plays and writes the PSG |
+| `mtk_sfx` | A = instrument, B = note, C = channel | Plays a sound effect over the music on that channel |
+| `mtk_sfx_stop` | – | Ends the sound effect |
+| `mtk_sfx_bank` | HL = .MTK file | Takes sound-effect instruments from another file (e.g. an "SFX only" song) |
+
+A non-looping instrument ends after its last step. A looping one (e.g.
+SIREN) plays until `mtk_sfx_stop`. You can read `mtk_PL_PLAYING`,
+`mtk_PL_ORDPOS`, `mtk_PL_ROW` and `mtk_SFX_ON` to sync game events to the
+music. Full notes are in the header of `mtkplay.asm`.
+
+**Example:** `replayer/example/example.asm` builds `build/example.rom`. It's a
+cartridge that plays the demo song: SPACE turns the music on and off, keys
+1–7 fire sound effects (kick, snare, laser, explosion, coin, jump, siren) and
+0 stops a looping effect.
+
+**Workflow for a game:** compose the music in MSXTRACK and save it to disk
+as `.MTK`. Put your sound effects in instruments, in the same song or in a
+separate song used as an SFX bank. Then `incbin` the file(s) into your
+program.
 
 ## Timing note
 
@@ -183,18 +239,21 @@ This is the same as nearly all MSX games.
 Needs `pasmo` and `python3`:
 
 ```sh
-./build.sh          # -> build/msxtrack.rom (16384 bytes)
+./build.sh          # -> build/msxtrack.rom, replayer/mtkplay.asm, build/example.rom
 test/run_tests.sh   # optional: automated tests in openMSX + C-BIOS
 ```
 
 | File | Contents |
 |------|----------|
 | `src/main.asm` | Cartridge header, start-up, RAM detection, main loop, keyboard |
-| `src/player.asm` | Replay engine (interrupt driven) |
+| `src/player_core.asm` | Replay engine, shared by the tracker and the game replayer |
+| `src/player.asm` | Tracker side of the engine (interrupt hook, preview) |
 | `src/edpat.asm` / `edsong.asm` / `edins.asm` | The three editors |
 | `src/file.asm` | Disk (BDOS) and tape storage |
 | `src/ui.asm`, `help.asm` | Text screen helpers and built-in help |
 | `src/song.asm` | New song, preset instruments, demo song |
 | `tools/gen_tables.py` | Note frequency, volume and vibrato tables |
 | `tools/gen_song.py` | Preset instruments and demo song data |
-| `test/` | openMSX smoke test, including an emulated disk BDOS |
+| `tools/gen_replayer.py` | Builds `replayer/mtkplay.asm` from the engine core (+ `tools/replayer_*.asm`) |
+| `replayer/` | Standalone game replayer and example cartridge (`example/demo.mtk` is the demo song) |
+| `test/` | openMSX tests for the tracker and the replayer, including an emulated disk BDOS |

@@ -153,6 +153,10 @@ st_nodisk:
         ld a,1
         ld (SCNCNT),a           ; scan the keyboard on the next interrupt
         call GICINI
+        ld hl,ORDERS
+        ld (PL_ORDERS),hl
+        ld hl,INSTR
+        ld (PL_INSTR),hl
         call build_pattab
         call init_ramstub
         call new_song
