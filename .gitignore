@@ -1,3 +1,4 @@
 build/*
 !build/msxtrack.rom
 !build/example.rom
+__pycache__/
