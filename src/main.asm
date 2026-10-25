@@ -161,6 +161,7 @@ st_nodisk:
         call init_ramstub
         call new_song
         call load_demo
+        call mark_saved
         ld a,4
         ld (ED_OCT),a
         ld a,1

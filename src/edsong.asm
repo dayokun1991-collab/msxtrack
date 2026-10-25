@@ -30,7 +30,12 @@ draw_song:
         dec a
         call phex2
         PRINT " fit"
-        PRINTAT 6,0,"ORDER LIST    INS/DEL edit  RET=go"
+        ld bc,6*256+0
+        call at
+        ld a,(SG_FIELD)
+        ld hl,song_hints
+        call skip_str
+        call pstr
         ; grid: 16 rows x 8 positions
         ld b,7
         ld c,0                  ; first position on the row
@@ -109,7 +114,16 @@ ds_curgrid:
         jp hilite
 
 ; ---------------------------------------------------------------------------
+song_hints:
+        db "Type the song name",0
+        db "Frames per row: lower = faster (01-1F)",0
+        db "Rows in every pattern (01-40)",0
+        db "How many positions the song has",0
+        db "Position to loop back to at the end",0
+        db "ORDER LIST  0-F set  INS/DEL  RET=edit",0
+
 song_key:
+        call mark_if_edit
         ld c,a
         ld a,(SG_FIELD)
         or a

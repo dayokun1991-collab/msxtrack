@@ -78,4 +78,62 @@ at 1.0 {
   check "disk load" {[string match "Song loaded*" [row 23]]}
   check "song restored byte for byte" {[snap] eq $::before}
 }
+
+# ---- editor features: undo, jam, new/clone position, end of pattern, hints,
+#      unsaved-changes warning, overwrite question ----
+proc cell {r ch} {
+  set pat [peek [expr {$::sym(ORDERS) + [peek $::sym(ED_ORD)]}]]
+  set pa [peek16 [expr {$::sym(PATTAB) + 2*$pat}]]
+  return [peek [expr {$pa + $r*12 + $ch*4}]]
+}
+proc tab_to_a {} {
+  set n [expr {(3 - [peek $::sym(ED_CH)]) % 3}]
+  if {$n == 0 && [peek $::sym(ED_COL)] != 0} { set n 3 }
+  for {set j 0} {$j < $n} {incr j} { after time [expr {0.2*$j}] {key 7 3} }
+}
+at 0.3 { key 6 5 }
+at 0.5 { tab_to_a; key 8 1 }
+at 1.0 { set ::orig [cell 0 0]; type "z" }
+at 0.4 { check "note typed" {[cell 0 0] == 37}; ctrl z }
+at 0.4 { check "CTRL+Z undoes it" {[cell 0 0] == $::orig}; ctrl z }
+at 0.4 { check "CTRL+Z again redoes it" {[cell 0 0] == 37}; ctrl j }
+at 0.4 { check "status shows JAM" {[string match "*JAM*" [row 23]]}; key 8 1 }
+at 0.3 { type "x" }
+at 0.4 {
+  set p [expr {[psgreg 0] + 256*[psgreg 1]}]
+  check "jam plays D-4 without writing (period $p)" {$p == 381 && [cell 0 0] == 37}
+  check "hint line explains the note column" {[string match "JAM: keys only play*" [row 22]]}
+  ctrl j
+}
+at 0.4 { set ::len [peek $::sym(SNG_LEN)]; set ::ord [peek $::sym(ED_ORD)]; ctrl n }
+at 0.5 {
+  check "CTRL+N adds a position" {[peek $::sym(SNG_LEN)] == $::len+1 && [peek $::sym(ED_ORD)] == $::ord+1}
+  set ::newpat [peek [expr {$::sym(ORDERS) + [peek $::sym(ED_ORD)]}]]
+  check "... with an unused pattern ($::newpat)" {$::newpat >= 3}
+  check "... that is empty" {[cell 0 0] == 0 && [cell 0 1] == 0 && [cell 0 2] == 0}
+  type "q"
+}
+at 0.4 { ctrl b }
+at 0.5 {
+  set p2 [peek [expr {$::sym(ORDERS) + [peek $::sym(ED_ORD)]}]]
+  check "CTRL+B clones into another pattern ($p2)" {$p2 != $::newpat && [cell 0 0] == 49}
+  keymatrixdown 6 1; after time 0.02 {key 8 1}; after time 0.2 {keymatrixup 6 1}
+}
+at 0.4 { check "SHIFT+HOME goes to the last row" {[peek $::sym(ED_ROW)] == [peek $::sym(SNG_PATLEN)]-1}; key 8 7 }
+at 0.1 { key 8 7 }
+at 0.1 { key 8 7 }
+at 0.3 { check "effect column hint" {[string match "Effect:*" [row 22]]}; key 7 0 }
+at 0.4 { type "n" }
+at 0.4 { check "unsaved changes warning" {[string match "Song not saved!*" [row 23]]}; type "n" }
+at 0.3 { type "s" }
+at 0.3 { key 7 5 }
+at 0.1 { key 7 5 }
+at 0.1 { key 7 5 }
+at 0.1 { key 7 5 }
+at 0.1 { key 7 5 }
+at 0.1 { type "smoke" }
+at 0.5 { type "\r" }
+at 0.8 { check "asks before replacing a file" {[string match "File exists*" [row 23]]}; type "y" }
+at 1.0 { check "saved after confirming" {[string match "Song saved*" [row 23]]}; type "n" }
+at 0.4 { check "no warning once saved" {[string match "Erase the whole song*" [row 23]]}; type "n" }
 finish

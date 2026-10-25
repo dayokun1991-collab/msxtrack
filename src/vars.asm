@@ -9,6 +9,7 @@ SCRBUF:     ds 960          ; 40x24 text screen mirror
 PATBUF:     ds PATSIZE      ; pattern clipboard (also font-inversion scratch)
 TRKBUF:     ds 256          ; track clipboard (must follow PATBUF)
 INSBUF:     ds INSSZ        ; instrument clipboard
+UNDOBUF:    ds PATSIZE      ; pattern before the last edit
 DIRBUF:     ds DIRMAX*8     ; disk directory names
 
 ; ---- song data block (saved/loaded as one piece) --------------------------
@@ -79,6 +80,9 @@ IN_COL:     ds 1
 IN_NPOS:    ds 1
 IN_TEST:    ds 1
 HELPPG:     ds 1
+ED_JAM:     ds 1
+UNDOPAT:    ds 1            ; pattern saved in UNDOBUF (FF = none)
+SONGMOD:    ds 1            ; song changed since load/save
 JAM_CUT:    ds 1
 DIRCNT:     ds 1
 TMPW:       ds 2

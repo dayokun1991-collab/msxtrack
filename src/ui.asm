@@ -184,8 +184,18 @@ df_more:
         ld ix,CHAN2
         ld a,'C'
         call df_mute
+        ld hl,txt_rec
+        ld a,(ED_JAM)
+        or a
+        jr z,df_rj
+        ld hl,txt_jam
+df_rj:  call pstr
         PRINT " F5 HELP"
         ret
+txt_rec:
+        db " REC",0
+txt_jam:
+        db " JAM",0
 df_mute:
         ld c,a
         ld a,(ix+C_MUTE)

@@ -60,6 +60,7 @@ Three channels, up to 64 rows per pattern. Every cell is
 | Keys | Action |
 |------|--------|
 | Arrows | Move (SHIFT+UP/DOWN: 16 rows, SHIFT+LEFT/RIGHT: previous/next song position) |
+| HOME / SHIFT+HOME | First / last row |
 | `Z S X D C V G B H N J M` | Piano, lower octave |
 | `Q 2 W 3 E R 5 T 6 Y 7 U I 9 O 0 P` | Piano, upper octave |
 | `1` | Note off (`===`) |
@@ -68,9 +69,13 @@ Three channels, up to 64 rows per pattern. Every cell is
 | `[` `]` | Octave down/up |
 | `,` `.` | Previous/next instrument |
 | `<` `>` | Pattern number used at this song position |
-| `-` `=` | Edit step (how many rows the cursor moves after input) |
+| `-` `=` | Edit step (how many rows the cursor moves after input, 0–16) |
 | SPACE | Play/stop the current pattern (loops) |
-| RETURN | Play/stop the song from this position |
+| RETURN | Play/stop the song from this position (SHIFT+RETURN: from this row) |
+| CTRL+Z | Undo the last change; press again to redo |
+| CTRL+J | Jam mode on/off: piano keys play notes without writing them |
+| CTRL+N | Add a new song position after this one with an empty pattern |
+| CTRL+B | Add a new position with a copy of this pattern, ready for a variation |
 | CTRL+C / CTRL+V | Copy/paste the track (channel) |
 | CTRL+A / CTRL+P | Copy/paste the whole pattern |
 | CTRL+U / CTRL+D | Transpose the track up/down a semitone |
@@ -78,6 +83,11 @@ Three channels, up to 64 rows per pattern. Every cell is
 
 Piano keys follow the letters printed on the keys, so on an AZERTY keyboard
 the layout moves with them.
+
+Every editor has a **hint line** that explains the field under the cursor. In
+the effect column it names the effect you are on, for example
+`4xy VIBRATO speed x, depth y`. The status line shows whether you are in
+**REC** (keys write notes) or **JAM** (keys only play) mode.
 
 ### Effects
 
@@ -144,6 +154,9 @@ DEL removes one, and RETURN jumps to that position in the pattern editor.
 * **Tape:** W write, R read, through the BIOS cassette routines with a
   checksum.
 * **N** new song, **X** reload the demo.
+* Your work is protected. Starting a new song or loading one warns you if
+  the current song has unsaved changes, and saving over an existing disk
+  file asks first.
 
 ## Song file format (`.MTK`)
 

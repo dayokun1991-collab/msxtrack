@@ -11,6 +11,23 @@ K_LOOP  equ 5                   ; 0..F, DEL = no loop
 
 draw_ins:
         call draw_title
+        ld bc,4*256+0           ; what the field under the cursor does
+        call at
+        ld a,(IN_ROW)
+        ld b,a
+        ld a,(IN_COL)
+        dec b
+        jp m,dih_go             ; name row: hint 0
+        inc a
+        dec b
+        jp m,dih_go             ; LENGTH row: 1-3
+        add a,3
+        dec b
+        jp m,dih_go             ; ENVELOPE row: 4-6
+        add a,3                 ; steps: 7-13
+dih_go: ld hl,ins_hints
+        call skip_str
+        call pstr
         PRINTAT 1,0,"INSTRUMENT "
         ld a,(ED_INS)
         call phex1
@@ -149,6 +166,22 @@ di_nobar:
         call in_cursor
         jp hilite
 
+ins_hints:
+        db "Type a name (8 letters)",0
+        db "Steps in the sequence (01-10)",0
+        db "Step to loop back to (DEL = no loop)",0
+        db "Frames per step (01-3F)",0
+        db "Hardware envelope shape 0-F (8-F loop)",0
+        db "0 = use PERIOD, 1-4 follow the note",0
+        db "Hardware envelope period (4 digits)",0
+        db "Volume 0-F",0
+        db "Semitones added to the note (- = minus)",0
+        db "Pitch sweep added every tick (- = up)",0
+        db "Noise period 00-1F (needs N on)",0
+        db "Tone on (1) / off (0)",0
+        db "Noise on (1) / off (0)",0
+        db "Hardware envelope on (1) / off (0)",0
+
 flagchars:
         db "TNE"
 
@@ -266,6 +299,7 @@ in_ncols:
 
 ; ---------------------------------------------------------------------------
 ins_key:
+        call mark_if_edit
         ld c,a
         ld a,(IN_ROW)
         or a

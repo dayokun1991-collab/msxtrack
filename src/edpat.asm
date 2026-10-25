@@ -23,7 +23,7 @@ draw_pat:
         call phex2
         PRINT " STEP "
         ld a,(ED_STEP)
-        call phex1
+        call phex2
         PRINTAT 2,0,"INS "
         ld a,(ED_INS)
         call phex1
@@ -55,6 +55,7 @@ dp_hdr: PRINTAT 3,0,"RW "
         ld ix,CHAN2
         ld c,'C'
         call dp_chhdr
+        call pat_hint
         ; 18 pattern rows, cursor row in the middle (screen row 12)
         ld a,(ED_ROW)
         sub 8
@@ -376,6 +377,14 @@ pat_keytab:
         dw pk_trdn
         db 5
         dw pk_cleartrk
+        db 26
+        dw pk_undo
+        db 10
+        dw pk_jam
+        db 14
+        dw pk_newpos
+        db 2
+        dw pk_clonepos
         db 0
 
 pat_other:
@@ -383,9 +392,12 @@ pat_other:
         ld a,(ED_COL)
         or a
         ld a,c
-        jr z,pat_note_key
+        jp z,pat_note_key
         call hexval
         ret c
+        push af
+        call snapshot
+        pop af
         ld c,a
         call cur_cell
         inc hl
@@ -489,6 +501,22 @@ pnk_f:  ld a,(ED_OCT)
         ret nc
         ld d,a
 pnk_write:
+        ld a,(ED_JAM)           ; jam mode: only play the note
+        or a
+        jr z,pnk_rec
+        ld a,(ED_INS)
+        rlca
+        rlca
+        rlca
+        rlca
+        ld e,a
+        ld bc,0
+        ld a,(ED_CH)
+        jp jam_cell
+pnk_rec:
+        push de
+        call snapshot
+        pop de
         push de
         call cur_cell
         pop de
@@ -635,8 +663,12 @@ pkt_1:  ld (ED_CH),a
         ld (ED_COL),a
         ret
 
-pk_home:
-        xor a
+pk_home:                        ; HOME first row, SHIFT+HOME last row
+        call shift_held
+        ld a,0
+        jr nz,pk_setrow
+        ld a,(SNG_PATLEN)
+        dec a
         jr pk_setrow
 
 ; ---- playback ----
@@ -651,18 +683,23 @@ pk_space:
         ld a,2
         jp play_start
 
-pk_return:
+pk_return:                      ; SHIFT+RETURN: from the cursor row
         ld a,(PL_PLAYING)
         or a
         jp nz,play_stop
-        ld a,(ED_ORD)
-        ld b,a
         ld c,0
+        call shift_held
+        jr nz,pkr_go
+        ld a,(ED_ROW)
+        ld c,a
+pkr_go: ld a,(ED_ORD)
+        ld b,a
         ld a,1
         jp play_start
 
 ; ---- editing ----
-pk_del: call cur_cell
+pk_del: call snapshot
+        call cur_cell
         ld a,(ED_COL)
         or a
         jr nz,pkd_1
@@ -694,7 +731,8 @@ pkd_3:  ld a,(hl)               ; effect
         jp advance
 
 ; delete the row under the cursor in this track, pull the rest up
-pk_bs:  ld a,(ED_ROW)
+pk_bs:  call snapshot
+        ld a,(ED_ROW)
         call cell_at
         ld a,(ED_ROW)
         ld b,a
@@ -718,7 +756,8 @@ pkb_last:
         jp clear4
 
 ; insert an empty row at the cursor in this track
-pk_ins: ld a,(SNG_PATLEN)
+pk_ins: call snapshot
+        ld a,(SNG_PATLEN)
         dec a
         call cell_at
         ld a,(ED_ROW)
@@ -776,6 +815,7 @@ ins_up: ld a,(ED_INS)
         ret
 
 pk_patdn:
+        call set_modified
         call cur_ord_ptr
         ld a,(hl)
         or a
@@ -783,6 +823,7 @@ pk_patdn:
         dec (hl)
         ret
 pk_patup:
+        call set_modified
         call cur_ord_ptr
         ld a,(NUMPAT)
         dec a
@@ -809,7 +850,7 @@ pk_stepdn:
         ret
 pk_stepup:
         ld a,(ED_STEP)
-        cp 15
+        cp 16
         ret nc
         inc a
         ld (ED_STEP),a
@@ -832,6 +873,7 @@ pct_lp: push bc
         jp set_msg
 
 pk_pastetrk:
+        call snapshot
         xor a
         call cell_at
         ex de,hl
@@ -858,6 +900,7 @@ pk_copypat:
         jp set_msg
 
 pk_pastepat:
+        call snapshot
         call cur_pat_addr
         ex de,hl
         ld hl,PATBUF
@@ -870,6 +913,7 @@ pk_cleartrk:
         ld hl,msg_clrtrk
         call confirm
         ret nz
+        call snapshot
         xor a
         call cell_at
         ld b,PATROWS
@@ -887,7 +931,10 @@ pk_trup:
         jr tr_do
 pk_trdn:
         ld c,0FFh
-tr_do:  xor a
+tr_do:  push bc
+        call snapshot
+        pop bc
+        xor a
         call cell_at
         ld b,PATROWS
         ld de,ROWSZ
@@ -905,6 +952,256 @@ tr_n:   add hl,de
         djnz tr_lp
         ret
 
+; ---- undo: the pattern as it was before the last change ----
+snapshot:
+        call set_modified
+        call cur_patnum
+        ld (UNDOPAT),a
+        call cur_pat_addr
+        ld de,UNDOBUF
+        ld bc,PATSIZE
+        ldir
+        ret
+
+pk_undo:                        ; swap pattern and snapshot (undo/redo)
+        ld a,(UNDOPAT)
+        cp 0FFh
+        ld hl,msg_noundo
+        jp z,set_msg
+        call get_pat_addr
+        ld de,UNDOBUF
+        ld bc,PATSIZE
+pu_lp:  ld a,(de)
+        push af
+        ld a,(hl)
+        ld (de),a
+        pop af
+        ld (hl),a
+        inc hl
+        inc de
+        dec bc
+        ld a,b
+        or c
+        jr nz,pu_lp
+        ld hl,msg_undo
+        jp set_msg
+
+pk_jam: ld hl,ED_JAM
+        ld a,(hl)
+        xor 1
+        ld (hl),a
+        ld hl,msg_recmode
+        jp z,set_msg
+        ld hl,msg_jammode
+        jp set_msg
+
+; ---- new song positions ----
+pk_newpos:                      ; CTRL+N: empty pattern after this position
+        call find_free
+        jr nc,new_position
+np_none:
+        ld hl,msg_nofree
+        jp set_msg
+pk_clonepos:                    ; CTRL+B: copy of this pattern after it
+        call find_free
+        jr c,np_none
+        push af
+        call get_pat_addr
+        push hl
+        call cur_pat_addr
+        pop de
+        ld bc,PATSIZE
+        ldir
+        pop af
+new_position:                   ; A = pattern
+        call set_modified
+        push af
+        ld a,(SNG_LEN)
+        cp ORDMAX
+        jr nc,np_full
+        ld a,(ED_ORD)
+        inc a
+        ld (ED_ORD),a
+        ld b,a
+        ld a,ORDMAX-1
+        sub b
+        jr z,np_set
+        ld c,a
+        ld b,0
+        ld hl,ORDERS+ORDMAX-2
+        ld de,ORDERS+ORDMAX-1
+        lddr
+np_set: call cur_ord_ptr
+        pop af
+        ld (hl),a
+        ld hl,SNG_LEN
+        inc (hl)
+        xor a
+        ld (ED_ROW),a
+        ld hl,msg_newpos
+        jp set_msg
+np_full:
+        pop af
+        ld hl,msg_full
+        jp set_msg
+
+; A = a pattern not used in the song and empty; carry if there is none
+find_free:
+        ld c,0
+ff_lp:  ld a,(NUMPAT)
+        cp c
+        jr nz,ff_chk
+        scf
+        ret
+ff_chk: ld hl,ORDERS
+        ld a,(SNG_LEN)
+        ld b,a
+ff_o:   ld a,(hl)
+        cp c
+        jr z,ff_next
+        inc hl
+        djnz ff_o
+        ld a,c
+        push bc
+        call pat_empty
+        pop bc
+        jr nz,ff_next
+        ld a,c
+        or a
+        ret
+ff_next:
+        inc c
+        jr ff_lp
+
+; A = pattern -> Z if it holds nothing
+pat_empty:
+        call get_pat_addr
+        ld bc,PATSIZE
+pe_lp:  ld a,(hl)
+        or a
+        ret nz
+        inc hl
+        dec bc
+        ld a,b
+        or c
+        jr nz,pe_lp
+        ret
+
+set_modified:
+        push af
+        ld a,1
+        ld (SONGMOD),a
+        pop af
+        ret
+
+; keys that only move around or play leave the song unchanged
+; (A = key; also preserved)
+mark_if_edit:
+        cp 13
+        ret z
+        cp 32
+        jr z,mie_sp
+        cp 28
+        jr c,set_modified
+        cp 32
+        ret c
+        jr set_modified
+mie_sp: push af                 ; SPACE types into names only
+        ld a,(SCREEN)
+        cp SCR_SONG
+        ld a,(SG_FIELD)
+        jr z,mie_nm
+        ld a,(IN_ROW)
+mie_nm: or a
+        pop af
+        ret nz
+        jr set_modified
+
+; ---- hint line: what the field under the cursor does ----
+pat_hint:
+        ld bc,22*256+0
+        call at
+        ld a,(ED_COL)
+        or a
+        jr nz,ph_1
+        ld hl,hint_note
+        ld a,(ED_JAM)
+        or a
+        jp z,pstr
+        ld hl,hint_jam
+        jp pstr
+ph_1:   ld hl,hint_ins
+        dec a
+        jp z,pstr
+        ld hl,hint_vol
+        dec a
+        jp z,pstr
+        call cur_cell
+        inc hl
+        inc hl
+        ld a,(hl)
+        ld hl,hint_fx
+        bit 6,a
+        jp z,pstr
+        and 0Fh
+        ld hl,fx_desc
+        call skip_str
+        jp pstr
+
+; HL = list of zero-terminated strings, A = index -> HL = that string
+skip_str:
+        or a
+        ret z
+        ld b,a
+ss_lp:  ld a,(hl)
+        inc hl
+        or a
+        jr nz,ss_lp
+        djnz ss_lp
+        ret
+
+hint_note:
+        db "Z-M Q-P notes 1=off [ ]=octave ,.=instr",0
+hint_jam:
+        db "JAM: keys only play (CTRL+J = record)",0
+hint_ins:
+        db "0-F instrument for this note (0 = none)",0
+hint_vol:
+        db "0-F volume for this note",0
+hint_fx:
+        db "Effect: 0-F + 2 digits (F5 = list)",0
+fx_desc:
+        db "0xy ARPEGGIO note, +x, +y semitones",0
+        db "1xx SLIDE UP by xx every tick",0
+        db "2xx SLIDE DOWN by xx every tick",0
+        db "3xx PORTAMENTO to this note, speed xx",0
+        db "4xy VIBRATO speed x, depth y",0
+        db "5xx ENVELOPE PERIOD high byte",0
+        db "6xx ENVELOPE PERIOD low byte",0
+        db "7xy ENVELOPE SHAPE y (restarts it)",0
+        db "8xx NOISE PERIOD (20+ = instrument)",0
+        db "9xx DELAY the note by xx ticks",0
+        db "Axy VOLUME SLIDE up x or down y",0
+        db "Bxx JUMP to song position xx",0
+        db "Cxx CUT the note after xx ticks",0
+        db "Dxx NEXT POSITION, start at row xx",0
+        db "Exx DETUNE (signed period offset)",0
+        db "Fxx SPEED: xx ticks per row",0
+
+msg_undo:
+        db "Undone (CTRL+Z again = redo)",0
+msg_noundo:
+        db "Nothing to undo",0
+msg_jammode:
+        db "JAM mode: notes are played, not written",0
+msg_recmode:
+        db "REC mode: notes are written",0
+msg_newpos:
+        db "New position added",0
+msg_nofree:
+        db "No free pattern left",0
+msg_full:
+        db "Song is full (128 positions)",0
 msg_trkcopy:
         db "Track copied (CTRL+V pastes)",0
 msg_patcopy:

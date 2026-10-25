@@ -20,6 +20,24 @@ dh_line:
         ld a,(hl)
         cp 0FFh
         jr z,dh_end
+        dec a                   ; 1 = the effect list goes here
+        jr nz,dh_text
+        inc hl
+        push hl
+        ld hl,fx_desc
+        ld e,16
+dh_fx:  ld c,0
+        push bc
+        push de
+        call at_pstr
+        pop de
+        pop bc
+        inc b
+        dec e
+        jr nz,dh_fx
+        pop hl
+        jr dh_line
+dh_text:
         ld c,0
         push bc
         call at_pstr
@@ -61,44 +79,30 @@ hk_set: ld (HELPPG),a
 
 help_text:
         db "PATTERN EDITOR (F1)",0
-        db "Arrows move   SHIFT+UP/DOWN 16 rows",0
-        db "SHIFT+LEFT/RIGHT prev/next position",0
-        db "TAB next channel     HOME first row",0
+        db "Arrows move    SHIFT+UP/DOWN 16 rows",0
+        db "SHIFT+LEFT/RIGHT previous/next position",0
+        db "TAB channel  HOME top  SHIFT+HOME end",0
         db "Piano: Z S X D C V G B H N J M",0
         db "       Q 2 W 3 E R 5 T 6 Y 7 U I 9 O 0 P",0
-        db "1      note off (===)",0
-        db "0-9A-F instrument, volume, effect",0
+        db "1 note off   0-F instrument/volume/fx",0
         db "DEL clear  BS delete row  INS insert",0
-        db "[ ]  octave         , .  instrument",0
+        db "[ ] octave  , . instrument  - = step",0
         db "< >  pattern number at this position",0
-        db "- =  edit step (rows to move)",0
         db "SPACE play pattern  RETURN play song",0
-        db "ESC  stop (any screen)",0
-        db "CTRL+C/V  copy/paste track",0
-        db "CTRL+A/P  copy/paste pattern",0
-        db "CTRL+U/D  transpose  CTRL+E clear",0
-        db "SHIFT+F1/F2/F3 mute A/B/C",0
-        db "SHIFT+F4 follow   SHIFT+F5 unmute all",0
+        db "SHIFT+RETURN play song from this row",0
+        db "ESC stop   CTRL+J jam (keys only play)",0
+        db "CTRL+Z undo / redo the last change",0
+        db "CTRL+C/V copy/paste track CTRL+E clear",0
+        db "CTRL+A/P copy/paste whole pattern",0
+        db "CTRL+U/D transpose the track",0
+        db "CTRL+N new position, empty pattern",0
+        db "CTRL+B new position, copy of this one",0
+        db "SHIFT+F1-F3 mute  F4 follow  F5 unmute",0
         db 0FFh
-        db "EFFECTS (hex, after the volume)",0
-        db "0xy arpeggio +x,+y semitones",0
-        db "1xx slide up        2xx slide down",0
-        db "3xx portamento to the note, speed xx",0
-        db "4xy vibrato, speed x depth y",0
-        db "5xx envelope period high  6xx low",0
-        db "7xy envelope shape y (restarts it)",0
-        db "8xx noise period (20+ = instrument)",0
-        db "9xx delay the note by xx ticks",0
-        db "Axy volume slide: up x or down y",0
-        db "Bxx jump to song position xx",0
-        db "Cxx cut the note after xx ticks",0
-        db "Dxx next position, start at row xx",0
-        db "Exx detune (signed period offset)",0
-        db "Fxx speed: xx ticks per row",0
+        db "EFFECTS (the column after the volume)",0
+        db 1
         db "0-4 and A keep running on the next",0
         db "rows until 000 or a new note.",0
-        db "Cell: NOTE INSTRUMENT VOLUME EFFECT",0
-        db "      C-4  1          F      A03",0
         db 0FFh
         db "INSTRUMENTS / SOUND EFFECTS (F3)",0
         db "Up to 16 steps, each with:",0
@@ -113,6 +117,8 @@ help_text:
         db "follow the note (2 = same pitch)",0
         db "SPACE test sound  RETURN retrigger",0
         db "CTRL+C/V copy/paste  , . instrument",0
+        db "The line above the table explains",0
+        db "the field under the cursor.",0
         db " ",0
         db "SONG (F2): name, speed, rows, order",0
         db "list (INS/DEL/RETURN). FILE (F4):",0

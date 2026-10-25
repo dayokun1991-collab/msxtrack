@@ -80,20 +80,59 @@ file_key:
         cp 'X'
         ret nz
         ld hl,msg_demo
-        call confirm
+        call ask_discard
         ret nz
         call play_stop
         call new_song
         call load_demo
-        ld hl,msg_done
-        jp set_msg
+        jr fk_done
 fk_new: ld hl,msg_new
-        call confirm
+        call ask_discard
         ret nz
         call play_stop
         call new_song
+fk_done:
+        call mark_saved
         ld hl,msg_done
         jp set_msg
+
+ok_saved:
+        call mark_saved
+        ld hl,msg_saved
+        jp set_msg
+ok_loaded:
+        call mark_saved
+        ld hl,msg_loaded
+        jp set_msg
+
+; ---- unsaved changes: SONGMOD is set by every editing key ----
+mark_saved:
+        xor a
+        ld (SONGMOD),a
+        ret
+
+; Z if the song is unchanged since it was last loaded or saved
+song_changed:
+        ld a,(SONGMOD)
+        or a
+        ret
+
+; ask HL, but warn instead if there are unsaved changes. Z = go ahead
+ask_discard:
+        push hl
+        call song_changed
+        pop hl
+        jp z,confirm
+ask_unsaved:
+        ld hl,msg_unsaved
+        jp confirm
+
+; ask only when there are unsaved changes. Z = go ahead
+check_discard:
+        call song_changed
+        ret z
+        jr ask_unsaved
+
 
 ; ---- filename prompt in the status line. Z = accepted ----
 input_name:
@@ -222,21 +261,12 @@ cu_lp:  cp c
         dec a
         push af
         push bc
-        call get_pat_addr
-        ld bc,PATSIZE
-cu_e:   ld a,(hl)
-        or a
-        jr nz,cu_used
-        inc hl
-        dec bc
-        ld a,b
-        or c
-        jr nz,cu_e
+        call pat_empty
         pop bc
+        jr nz,cu_used
         pop af
         jr cu_lp
 cu_used:
-        pop bc
         pop af
         inc a
         ld c,a
@@ -342,6 +372,8 @@ al_i1:  pop af
         cp NINS
         jr c,al_ins
 reset_editor:
+        ld a,0FFh               ; nothing to undo in a new song
+        ld (UNDOPAT),a
         xor a
         ld (ED_ORD),a
         ld (ED_ROW),a
@@ -528,6 +560,16 @@ disk_save:
         call make_header
         call disk_begin
         ld de,FCB
+        ld c,0Fh                ; already there?
+        call bdos
+        or a
+        jr nz,dsv_new
+        ld hl,msg_exists
+        call confirm
+        jp nz,disk_end
+dsv_new:
+        call make_fcb
+        ld de,FCB
         ld c,16h                ; create
         call bdos
         or a
@@ -562,8 +604,7 @@ dsv_done:
         or a
         jr nz,dsv_fail
         call disk_end
-        ld hl,msg_saved
-        jp set_msg
+        jp ok_saved
 dsv_fail:
         call disk_end
         ld hl,msg_diskerr
@@ -573,6 +614,8 @@ disk_load:
         ld (SAVESP),sp
         call need_disk
         ret z
+        call check_discard
+        ret nz
         call input_name
         ret nz
         call disk_begin
@@ -612,8 +655,7 @@ dld_done:
         call bdos
         call disk_end
         call after_load
-        ld hl,msg_loaded
-        jp set_msg
+        jp ok_loaded
 dld_nf: ld hl,msg_notfound
         jr dld_msg
 dld_fail:
@@ -709,8 +751,7 @@ ts_end: ld a,(CHKSUM)
         jr c,ts_err
         call TAPOOF
         ei
-        ld hl,msg_saved
-        jp set_msg
+        jp ok_saved
 ts_err: call TAPOOF
         ei
         ld hl,msg_tapeerr
@@ -736,6 +777,8 @@ twrite: ld a,d
         jr twrite
 
 tape_load:
+        call check_discard
+        ret nz
         ld hl,msg_play
         call tape_prompt
         ret nz
@@ -777,8 +820,7 @@ tl_end: ld a,(CHKSUM)
         call TAPIOF
         ei
         call after_load
-        ld hl,msg_loaded
-        jp set_msg
+        jp ok_loaded
 tl_bad: call after_load
 tl_err: ld hl,msg_tapeerr
 tl_msg: push hl
@@ -829,6 +871,8 @@ tp_ok:  push af
         ret
 
 msg_new:        db "Erase the whole song? (Y/N)",0
+msg_unsaved:    db "Song not saved! Throw it away? (Y/N)",0
+msg_exists:     db "File exists. Replace it? (Y/N)",0
 msg_demo:       db "Replace song with the demo? (Y/N)",0
 msg_done:       db "Done",0
 msg_saved:      db "Song saved",0
