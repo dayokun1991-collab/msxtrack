@@ -1,5 +1,7 @@
 # MSXTRACK – an all-in-one chiptune and sound effect maker for MSX
 
+**Website, downloads and audio demos:** https://dayokun1991-collab.github.io/msxtrack/
+
 MSXTRACK is a music tracker that runs **on the MSX itself**. It is a 16KB ROM
 cartridge written in Z80 assembly that turns any MSX into a complete
 composing station for the AY-3-8910 / YM2149 PSG: pattern editor, song
@@ -269,4 +271,5 @@ test/run_tests.sh   # optional: automated tests in openMSX + C-BIOS
 | `tools/gen_song.py` | Preset instruments and demo song data |
 | `tools/gen_replayer.py` | Builds `replayer/mtkplay.asm` from the engine core (+ `tools/replayer_*.asm`) |
 | `replayer/` | Standalone game replayer and example cartridge (`example/demo.mtk` is the demo song) |
+| `site/` | The project website (deployed with `.github/workflows/pages.yml`) |
 | `test/` | openMSX tests for the tracker and the replayer, including an emulated disk BDOS |

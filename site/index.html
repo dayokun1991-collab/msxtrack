@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MSXTRACK – chiptune tracker for MSX</title>
+<meta name="description" content="An all-in-one chiptune and sound effect tracker that runs on every MSX, with a replayer for using songs in games.">
+<style>
+  :root {
+    --bg: #1b1d5e; --panel: #2a2d86; --ink: #f4f4ff; --muted: #c3c6f2;
+    --accent: #ffd54a; --line: #4b4fb8; --code: #12133f;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 960px; margin: 0 auto; padding: 0 16px 64px; }
+  header { text-align: center; padding: 56px 0 24px; }
+  h1 { font: 700 clamp(2.2rem, 7vw, 3.6rem)/1.1 "Courier New", monospace;
+       letter-spacing: .08em; margin: 0 0 12px; color: var(--accent); }
+  h2 { font-family: "Courier New", monospace; color: var(--accent);
+       border-bottom: 2px solid var(--line); padding-bottom: 6px; margin-top: 48px; }
+  .lead { font-size: 1.15rem; color: var(--muted); max-width: 640px; margin: 0 auto; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 28px 0 8px; }
+  .btn { display: inline-block; padding: 12px 20px; border-radius: 6px; font-weight: 600;
+         text-decoration: none; color: var(--code); background: var(--accent); }
+  .btn.alt { background: transparent; color: var(--ink); border: 2px solid var(--line); }
+  .btn:focus-visible, a:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+  a { color: var(--accent); }
+  .shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  figure { margin: 0; background: var(--panel); border-radius: 8px; padding: 10px; }
+  figure img { width: 100%; height: auto; display: block; image-rendering: pixelated; border-radius: 4px; }
+  figcaption { color: var(--muted); font-size: .9rem; padding-top: 6px; }
+  ul.features { padding-left: 20px; }
+  ul.features li { margin: 6px 0; }
+  .songs { display: grid; gap: 12px; }
+  .song { background: var(--panel); border-radius: 8px; padding: 14px 16px; }
+  .song h3 { margin: 0 0 4px; font-size: 1.05rem; }
+  .song p { margin: 0 0 8px; color: var(--muted); font-size: .92rem; }
+  audio { width: 100%; }
+  pre { background: var(--code); border: 1px solid var(--line); border-radius: 6px; padding: 14px;
+        overflow-x: auto; font: 14px/1.5 "Courier New", monospace; }
+  code { font-family: "Courier New", monospace; }
+  table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+  td, th { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { color: var(--accent); }
+  .table-wrap { overflow-x: auto; }
+  footer { color: var(--muted); font-size: .85rem; text-align: center; margin-top: 56px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>MSXTRACK</h1>
+    <p class="lead">An all-in-one chiptune and sound-effect tracker that runs on the MSX itself.
+      It's a 16KB cartridge for every MSX1, MSX2, MSX2+ and turbo R with 16KB of RAM or more.</p>
+    <div class="buttons">
+      <a class="btn" href="msxtrack.rom" download>Download the ROM</a>
+      <a class="btn alt" href="https://webmsx.org/?ROM=https://dayokun1991-collab.github.io/msxtrack/msxtrack.rom">Try it in your browser (WebMSX)</a>
+      <a class="btn alt" href="https://github.com/dayokun1991-collab/msxtrack">Source on GitHub</a>
+    </div>
+  </header>
+
+  <section aria-labelledby="shots">
+    <h2 id="shots">Screens</h2>
+    <div class="shots">
+      <figure><img src="screen_pat.png" width="768" height="576" alt="Pattern editor with three channels of notes, instruments and effects"><figcaption>Pattern editor: 3 channels, hint line for the field under the cursor</figcaption></figure>
+      <figure><img src="screen_ins.png" width="768" height="576" alt="Instrument editor with a 16-step table and volume bars"><figcaption>Instrument / sound-effect editor</figcaption></figure>
+      <figure><img src="screen_song.png" width="768" height="576" alt="Song screen with settings and the order list"><figcaption>Song settings and order list</figcaption></figure>
+      <figure><img src="screen_help.png" width="768" height="576" alt="Help page listing the 16 effects"><figcaption>Built-in help</figcaption></figure>
+    </div>
+  </section>
+
+  <section aria-labelledby="listen">
+    <h2 id="listen">Listen</h2>
+    <div class="songs">
+      <div class="song">
+        <h3>Pixel Sunrise</h3>
+        <p>Entered key by key in MSXTRACK on an emulated MSX1 and recorded from its PSG.
+          <a href="pixel_sunrise.mtk" download>Song file (.MTK)</a></p>
+        <audio controls preload="none" src="pixel_sunrise.mp3"></audio>
+      </div>
+      <div class="song">
+        <h3>Neon Run</h3>
+        <p>A longer piece with a buzz-bass chorus, played by MSXTRACK on an emulated MSX1.
+          <a href="neon_run.mtk" download>Song file (.MTK)</a></p>
+        <audio controls preload="none" src="neon_run.mp3"></audio>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="features">
+    <h2 id="features">What it does</h2>
+    <ul class="features">
+      <li><strong>Pattern editor:</strong> 3 PSG channels, up to 64 rows, piano-key note entry, copy/paste, transpose, undo/redo and jam mode.</li>
+      <li><strong>16 effects:</strong> arpeggio, slides, portamento, vibrato, volume slide, hardware envelope, noise, delay, cut, detune, speed, jump and break.</li>
+      <li><strong>Instruments and sound effects:</strong> 16-step sequences of volume, arpeggio, pitch sweep, noise and tone/noise/envelope switches, with loops. 15 presets, including kick, snare, laser, explosion and coin.</li>
+      <li><strong>Song editor:</strong> 128-position order list, speed, pattern length and loop point.</li>
+      <li><strong>Saving:</strong> disk (when a drive is present) and tape, with a warning before unsaved work is lost.</li>
+      <li><strong>Runs everywhere:</strong> only BIOS calls and the standard PSG ports, so it works on any keyboard layout, any slot layout, and the original BIOS or C-BIOS.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="keys">
+    <h2 id="keys">Getting started</h2>
+    <p>The tracker starts with a demo song. Press <strong>RETURN</strong> to hear it and <strong>F5</strong> for the built-in help.</p>
+    <div class="table-wrap">
+    <table>
+      <tr><th>Keys</th><th>Action</th></tr>
+      <tr><td>F1 – F5</td><td>Pattern, song, instrument, file, help</td></tr>
+      <tr><td>Z S X D C V G B H N J M / Q 2 W 3 E R 5 T 6 Y 7 U I</td><td>Piano (two octaves)</td></tr>
+      <tr><td>SPACE / RETURN / ESC</td><td>Play pattern / play song / stop</td></tr>
+      <tr><td>CTRL+Z · CTRL+J</td><td>Undo · jam mode (keys only play)</td></tr>
+      <tr><td>CTRL+N · CTRL+B</td><td>New position with an empty pattern · with a copy of this one</td></tr>
+    </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="games">
+    <h2 id="games">Use your songs in games</h2>
+    <p><a href="mtkplay.asm" download>mtkplay.asm</a> is a replayer of about 2.3KB that you include in your
+      own program. It uses the tracker's own engine, so songs sound the same as in the editor.
+      Songs can stay in ROM, and one sound-effect voice can play over the music.</p>
+<pre><code>MTK_RAM equ 0E000h        ; 175 bytes of RAM
+        include "mtkplay.asm"
+        ld hl,song : call mtk_init
+        xor a      : call mtk_start
+        ; once per frame, from your H.TIMI hook:
+        call mtk_frame
+        ; a laser on channel C:
+        ld a,10 : ld b,61 : ld c,2 : call mtk_sfx
+song:   incbin "mysong.mtk"</code></pre>
+    <p>There's also an <a href="example.rom" download>example cartridge</a>: it plays the demo song, and keys 1–7 fire sound effects.</p>
+  </section>
+
+  <footer>
+    MSXTRACK is written in Z80 assembly. See the <a href="https://github.com/dayokun1991-collab/msxtrack#readme">README</a> for the full manual, the effect list and the song file format.
+  </footer>
+</main>
+</body>
+</html>
