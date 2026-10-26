@@ -54,7 +54,8 @@
     <p class="lead">An all-in-one chiptune and sound-effect tracker that runs on the MSX itself.
       It's a 16KB cartridge for every MSX1, MSX2, MSX2+ and turbo R with 16KB of RAM or more.</p>
     <div class="buttons">
-      <a class="btn" href="msxtrack.rom" download>Download the ROM</a>
+      <a class="btn" href="app/">Make music in your browser</a>
+      <a class="btn alt" href="msxtrack.rom" download>Download the ROM</a>
       <a class="btn alt" href="https://webmsx.org/?ROM=https://dayokun1991-collab.github.io/msxtrack/msxtrack.rom">Try it in your browser (WebMSX)</a>
       <a class="btn alt" href="https://github.com/dayokun1991-collab/msxtrack">Source on GitHub</a>
     </div>
@@ -68,6 +69,16 @@
       <figure><img src="screen_song.png" width="768" height="576" alt="Song screen with settings and the order list"><figcaption>Song settings and order list</figcaption></figure>
       <figure><img src="screen_help.png" width="768" height="576" alt="Help page listing the 16 effects"><figcaption>Built-in help</figcaption></figure>
     </div>
+  </section>
+
+  <section aria-labelledby="web">
+    <h2 id="web">MSXTRACK Web</h2>
+    <p>The same tracker in your browser, with a modern interface: a pattern editor, instruments with draggable
+      volume bars, an order list, an on-screen piano, undo, and <strong>MP3 and WAV export</strong>.
+      It uses the cartridge's own engine, ported so that it writes exactly the same sound-chip registers frame by frame,
+      plus an emulation of the MSX sound chip. Songs are saved as <code>.MTK</code> files that load on a real MSX
+      and in the game replayer.</p>
+    <p><a class="btn" href="app/">Open MSXTRACK Web</a></p>
   </section>
 
   <section aria-labelledby="listen">

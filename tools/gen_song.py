@@ -126,13 +126,16 @@ def demo():
     return out
 
 
-def demo_mtk():
-    """The demo song as a .MTK file, byte for byte what MSXTRACK saves."""
-    npat = max(p for p, *_ in events) + 1
+def demo_mtk(empty=False):
+    """The demo song as a .MTK file, byte for byte what MSXTRACK saves.
+    empty=True gives what the tracker's "New song" makes."""
+    npat = 1 if empty else max(p for p, *_ in events) + 1
     out = bytearray(b"MSXTRK") + bytes([1, npat])
-    settings = bytearray([6, PATLEN, len(ORDERS), 1]) + b"DEMO TUNE       " + bytes(12)
-    out += settings
-    out += bytes(ORDERS) + bytes(128 - len(ORDERS))
+    if empty:
+        out += bytearray([6, 64, 1, 0]) + b"SONG            " + bytes(12) + bytes(128)
+    else:
+        out += bytearray([6, PATLEN, len(ORDERS), 1]) + b"DEMO TUNE       " + bytes(12)
+        out += bytes(ORDERS) + bytes(128 - len(ORDERS))
     out += bytes(96)  # instrument slot 0 is unused
     for name, loop, speed, shape, emode, period, steps in INSTRUMENTS:
         ins = bytearray(96)
@@ -143,7 +146,7 @@ def demo_mtk():
             ins[16 + 5 * k:21 + 5 * k] = bytes([v, s8(a), s8(sw), n, f])
         out += ins
     pats = bytearray(npat * 768)
-    for p, r, ch, n, ins in events:
+    for p, r, ch, n, ins in ([] if empty else events):
         o = p * 768 + r * 12 + ch * 4
         pats[o] = n
         pats[o + 1] = ins << 4
@@ -157,3 +160,6 @@ if __name__ == "__main__":
     if len(sys.argv) > 2:
         with open(sys.argv[2], "wb") as f:
             f.write(demo_mtk())
+    if len(sys.argv) > 3:
+        with open(sys.argv[3], "wb") as f:
+            f.write(demo_mtk(empty=True))

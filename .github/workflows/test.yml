@@ -14,3 +14,17 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y pasmo openmsx cbios xvfb
       - name: Build and run the emulator tests
         run: test/run_tests.sh
+
+  web:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright with Chromium
+        run: |
+          npm install --no-save playwright@1.49.1
+          npx playwright install --with-deps chromium
+      - name: Engine equivalence and browser tests
+        run: test/web/run_web_tests.sh

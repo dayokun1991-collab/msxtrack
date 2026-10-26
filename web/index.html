@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MSXTRACK Web</title>
+<meta name="description" content="Make MSX chiptune music and sound effects in your browser. Exact MSX sound, .MTK files for real MSX machines, MP3 export.">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo">MSXTRACK</span><span class="sub">web</span></div>
+  <nav class="group" aria-label="File">
+    <button id="btn-new" title="New song">New</button>
+    <button id="btn-open" title="Open a .MTK song">Open…</button>
+    <input id="file-open" type="file" accept=".mtk,.MTK" hidden>
+    <button id="btn-save" title="Save as .MTK (loads on a real MSX too)">Save .MTK</button>
+    <button id="btn-export" class="primary" title="Export audio">Export MP3/WAV</button>
+    <label class="select-wrap" title="Example songs">
+      <span class="sr">Examples</span>
+      <select id="examples">
+        <option value="">Examples…</option>
+        <option value="demo.mtk">Demo tune</option>
+        <option value="neon_run.mtk">Neon Run</option>
+        <option value="pixel_sunrise.mtk">Pixel Sunrise</option>
+      </select>
+    </label>
+  </nav>
+  <nav class="group transport" aria-label="Playback">
+    <button id="btn-play-song" class="play" title="Play the song from this position (Enter)">▶ Song</button>
+    <button id="btn-play-pat" title="Loop this pattern (Space)">⟳ Pattern</button>
+    <button id="btn-stop" title="Stop (Esc)">■ Stop</button>
+    <span class="pos" id="pos" aria-live="off">Pos 00 · Row 00</span>
+  </nav>
+  <nav class="group" aria-label="Edit">
+    <button id="btn-undo" title="Undo (Ctrl+Z)">↶</button>
+    <button id="btn-redo" title="Redo (Ctrl+Shift+Z)">↷</button>
+    <label class="select-wrap" title="Video frequency: 60Hz (Japan/US MSX) or 50Hz (European MSX)">
+      <span class="sr">Speed of the MSX</span>
+      <select id="hz"><option value="60">60 Hz</option><option value="50">50 Hz</option></select>
+    </label>
+    <label class="vol" title="Volume"><span class="sr">Volume</span><input id="volume" type="range" min="0" max="100" value="80"></label>
+    <button id="btn-help" title="Keys and effects">?</button>
+  </nav>
+</header>
+
+<main class="layout">
+  <!-- song -->
+  <section class="panel song" aria-labelledby="song-h">
+    <h2 id="song-h">Song</h2>
+    <label class="field wide">Name <input id="song-name" maxlength="16" spellcheck="false"></label>
+    <div class="fields">
+      <label class="field">Speed <input id="song-speed" type="number" min="1" max="31"></label>
+      <label class="field">Rows <input id="song-rows" type="number" min="1" max="64"></label>
+      <label class="field">Loop to <input id="song-loop" type="number" min="0" max="127"></label>
+    </div>
+    <p class="bpm" id="song-bpm"></p>
+    <h3>Order list</h3>
+    <p class="note">Click a position to edit its pattern.</p>
+    <div class="orders" id="orders" role="listbox" aria-label="Song positions"></div>
+    <div class="order-tools">
+      <label class="field">Pattern here
+        <span class="stepper"><button id="pat-dn" aria-label="Previous pattern">−</button><input id="pat-num" type="number" min="0" max="63"><button id="pat-up" aria-label="Next pattern">+</button></span>
+      </label>
+      <div class="btnrow">
+        <button id="ord-new" title="New position with an empty pattern">+ New</button>
+        <button id="ord-clone" title="New position with a copy of this pattern">Clone</button>
+        <button id="ord-dup" title="Repeat this position">Repeat</button>
+        <button id="ord-del" title="Remove this position">Remove</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- pattern -->
+  <section class="panel pattern" aria-labelledby="pat-h">
+    <div class="pat-head">
+      <h2 id="pat-h">Pattern <span id="pat-label">00</span></h2>
+      <div class="toolbar">
+        <span class="stepper" title="Octave ([ and ])">Oct <button id="oct-dn" aria-label="Octave down">−</button><output id="oct">4</output><button id="oct-up" aria-label="Octave up">+</button></span>
+        <span class="stepper" title="Rows to move after typing (- and =)">Step <button id="step-dn" aria-label="Smaller step">−</button><output id="step">1</output><button id="step-up" aria-label="Bigger step">+</button></span>
+        <button id="btn-rec" class="toggle on" aria-pressed="true" title="REC writes notes, JAM only plays them (` key)">● REC</button>
+        <button id="btn-follow" class="toggle on" aria-pressed="true" title="Follow the playing row">Follow</button>
+      </div>
+    </div>
+    <div class="chan-head">
+      <span class="rn"></span>
+      <div class="ch" data-ch="0"><span>A</span><meter min="0" max="16" value="0"></meter><button class="mute" data-ch="0" aria-pressed="false" title="Mute channel A">M</button></div>
+      <div class="ch" data-ch="1"><span>B</span><meter min="0" max="16" value="0"></meter><button class="mute" data-ch="1" aria-pressed="false" title="Mute channel B">M</button></div>
+      <div class="ch" data-ch="2"><span>C</span><meter min="0" max="16" value="0"></meter><button class="mute" data-ch="2" aria-pressed="false" title="Mute channel C">M</button></div>
+    </div>
+    <div class="grid" id="grid" tabindex="0" role="grid" aria-label="Pattern editor: type notes with the computer keyboard"></div>
+    <div class="hint" id="hint" aria-live="polite"></div>
+    <div class="piano" id="piano" aria-label="Piano"></div>
+  </section>
+
+  <!-- instruments -->
+  <section class="panel instr" aria-labelledby="ins-h">
+    <h2 id="ins-h">Instruments &amp; sound effects</h2>
+    <div class="ins-list" id="ins-list" role="listbox" aria-label="Instruments"></div>
+    <div class="ins-edit">
+      <div class="fields">
+        <label class="field wide">Name <input id="ins-name" maxlength="8" spellcheck="false"></label>
+        <label class="field">Steps <input id="ins-len" type="number" min="1" max="16"></label>
+        <label class="field">Loop <select id="ins-loop"></select></label>
+        <label class="field">Speed <input id="ins-speed" type="number" min="1" max="63" title="Frames per step"></label>
+      </div>
+      <div class="fields">
+        <label class="field">Envelope <select id="ins-shape"></select></label>
+        <label class="field">Env. pitch <select id="ins-emode">
+          <option value="0">Fixed period</option><option value="1">Note, octave down</option>
+          <option value="2">Note (buzz)</option><option value="3">Note, octave up</option><option value="4">Note, 2 octaves up</option>
+        </select></label>
+        <label class="field">Period <input id="ins-eper" type="number" min="0" max="65535"></label>
+      </div>
+      <div class="steps" id="steps"></div>
+      <div class="btnrow">
+        <button id="ins-test" class="play" title="Hold to hear the instrument (or play the piano keys)">▶ Test</button>
+        <button id="ins-copy">Copy</button>
+        <button id="ins-paste">Paste</button>
+      </div>
+      <p class="note" id="ins-hint">Drag the volume bars. Values: click and type, or use the mouse wheel.</p>
+    </div>
+  </section>
+</main>
+
+<div class="status" id="status" role="status"></div>
+
+<dialog id="dlg-export">
+  <form method="dialog">
+    <h2>Export audio</h2>
+    <p class="note">The song is played by the same engine and sound chip emulation as on a real MSX.</p>
+    <fieldset>
+      <legend>Format</legend>
+      <label><input type="radio" name="fmt" value="mp3" checked> MP3</label>
+      <label><input type="radio" name="fmt" value="wav"> WAV</label>
+    </fieldset>
+    <label class="field">Play through <select id="exp-loops"><option value="1">once</option><option value="2">twice</option><option value="3">3 times</option></select></label>
+    <label class="check"><input type="checkbox" id="exp-fade" checked> Fade out into the loop</label>
+    <label class="field">MP3 quality <select id="exp-rate"><option value="128">128 kbps</option><option value="192" selected>192 kbps</option><option value="320">320 kbps</option></select></label>
+    <progress id="exp-progress" max="1" value="0" hidden></progress>
+    <p id="exp-msg" class="note"></p>
+    <div class="btnrow">
+      <button value="cancel">Close</button>
+      <button id="exp-go" class="primary" value="default">Export</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-help">
+  <form method="dialog">
+    <h2>Keys</h2>
+    <div class="help-cols">
+      <table>
+        <tr><th>Z S X D C V G B H N J M</th><td>piano, lower octave</td></tr>
+        <tr><th>Q 2 W 3 E R 5 T 6 Y 7 U I 9 O 0 P</th><td>piano, upper octave</td></tr>
+        <tr><th>1</th><td>note off</td></tr>
+        <tr><th>0-9 A-F</th><td>instrument, volume, effect columns</td></tr>
+        <tr><th>[ ]</th><td>octave</td></tr>
+        <tr><th>, .</th><td>instrument</td></tr>
+        <tr><th>- =</th><td>edit step</td></tr>
+        <tr><th>`</th><td>REC / JAM (keys only play)</td></tr>
+        <tr><th>Arrows, Tab, PgUp/PgDn, Home/End</th><td>move</td></tr>
+        <tr><th>Delete · Backspace · Insert</th><td>clear · delete row · insert row</td></tr>
+        <tr><th>Space · Enter · Shift+Enter · Esc</th><td>loop pattern · play song · from this row · stop</td></tr>
+        <tr><th>Ctrl+Z · Ctrl+Shift+Z</th><td>undo · redo</td></tr>
+        <tr><th>Ctrl+C/X/V</th><td>copy/cut/paste the track</td></tr>
+        <tr><th>Ctrl+Shift+C/X/V</th><td>… the whole pattern</td></tr>
+        <tr><th>Alt+↑/↓ (Shift: octave)</th><td>transpose the track</td></tr>
+      </table>
+      <table id="help-fx"></table>
+    </div>
+    <p class="note">Songs are saved as .MTK files, the same format as the MSXTRACK cartridge, so they load on a real MSX and in the game replayer. Your current song is also kept in this browser.</p>
+    <div class="btnrow"><button value="close" class="primary">Close</button></div>
+  </form>
+</dialog>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

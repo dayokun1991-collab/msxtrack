@@ -31,6 +31,7 @@ jobs:
           cp build/msxtrack.rom build/example.rom _site/
           cp songs/*.mp3 songs/*.mtk _site/
           cp replayer/mtkplay.asm _site/
+          cp -r web _site/app
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:

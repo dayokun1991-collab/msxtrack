@@ -184,6 +184,34 @@ period lo, period hi, reserved, name[8]`, then 16 steps of
 
 Tape files are the same bytes followed by a one-byte checksum.
 
+## MSXTRACK Web
+
+`web/` is a browser version of the tracker, with a modern interface:
+https://dayokun1991-collab.github.io/msxtrack/app/
+
+* **Same sound as on a real MSX.** `web/js/engine.js` is a line-by-line port
+  of the cartridge's replay engine. The tests check that it writes exactly
+  the same sound-chip registers as the Z80 code, frame by frame (reference
+  logs recorded from the tracker in openMSX). `web/js/psg.js` emulates the
+  AY-3-8910 sound chip, and playback runs at the real MSX video rates
+  (59.92Hz NTSC or 50.16Hz PAL).
+* **Same files.** Songs open and save as `.MTK`, byte for byte the
+  cartridge's format, so they load on a real MSX and in the game replayer.
+* **MP3 and WAV export**, rendered in the browser. You can play the song
+  through once or several times and fade out into the loop.
+* **Editing:**
+  * a pattern editor with the cartridge's keys, plus the mouse and an
+    on-screen piano;
+  * an instrument editor with draggable volume bars;
+  * the order list, undo/redo, jam mode, mute/solo, level meters and effect
+    hints;
+  * your current song is kept in the browser between visits.
+
+Run it locally with any static web server, e.g.
+`cd web && python3 -m http.server`, then open http://localhost:8000/.
+`test/web/run_web_tests.sh` runs the engine comparison and a browser test
+(the browser test needs Node's `playwright` package).
+
 ## Using songs in games: the MTKPLAY replayer
 
 `replayer/mtkplay.asm` is a standalone replayer you can include in your own
@@ -271,5 +299,6 @@ test/run_tests.sh   # optional: automated tests in openMSX + C-BIOS
 | `tools/gen_song.py` | Preset instruments and demo song data |
 | `tools/gen_replayer.py` | Builds `replayer/mtkplay.asm` from the engine core (+ `tools/replayer_*.asm`) |
 | `replayer/` | Standalone game replayer and example cartridge (`example/demo.mtk` is the demo song) |
+| `web/` | MSXTRACK Web: the browser version (engine port, PSG emulation, editor, MP3/WAV export) |
 | `site/` | The project website (deployed with `.github/workflows/pages.yml`) |
-| `test/` | openMSX tests for the tracker and the replayer, including an emulated disk BDOS |
+| `test/` | openMSX tests for the tracker and the replayer (including an emulated disk BDOS); `test/web/` tests the web version |
